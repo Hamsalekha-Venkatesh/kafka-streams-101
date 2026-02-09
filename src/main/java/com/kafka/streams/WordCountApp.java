@@ -13,12 +13,14 @@ import org.apache.kafka.streams.kstream.Produced;
 
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.UUID;
 
 public class WordCountApp {
     public static void main(String[] args) {
         Properties properties = new Properties();
         properties.put(StreamsConfig.APPLICATION_ID_CONFIG, "wordcount-application");
         properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        properties.put(StreamsConfig.STATE_DIR_CONFIG,  "/tmp/kafka-streams/wordcount-" + UUID.randomUUID()); // to run multiple instances of stream apps
         properties.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         properties.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -28,14 +30,16 @@ public class WordCountApp {
         // 1 - Stream from Kafka Input topic...
         KStream<String, String> wordCountInput = builder.stream("wordcount-input-topic");
 
-        KTable<String, Long> wordCounts = wordCountInput
+        KStream<String, Long> wordCounts = wordCountInput
                 .mapValues(inputLine -> inputLine.toLowerCase()) // E.g. I/p: <Kafka Kakfa STreams> ;  o/p: <kafka kakfa streams>
                 .flatMapValues(eachLine -> Arrays.asList(eachLine.split(" "))) // split the values by space
                 .selectKey((ignoredKey, word) -> word) //select a key to apply
                 .groupByKey() // Group similar keys to one bucket
-                .count(Named.as("Counts")); // count instance of the key..
+                .count(Named.as("Counts"))
+                .toStream(); // count instance of the key..
 
-        wordCounts.toStream().to("wordcount-output-topic", Produced.with(Serdes.String(), Serdes.Long()));
+        // Write the data back to Kafka-- terminal operation...
+        wordCounts.to("wordcount-output-topic", Produced.with(Serdes.String(), Serdes.Long()));
 
         try (KafkaStreams streams = new KafkaStreams(builder.build(), properties)) {
             streams.start();

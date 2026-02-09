@@ -1,5 +1,5 @@
 # Start Kafka (KRaft mode, no Zookeeper step)
-![img.png](img.png)
+![img.png](src/img.png)
 
 ```shell
 cd Desktop/kafka_2.13-4.1.1
@@ -56,5 +56,5 @@ You must see list of logs outlining Kafka Values. If not, check log4j App.
 bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic wordcount-input-topic
 ```
 
-# Sidenote: 
+## Sidenote: 
 1. Kafka streams takes sometime to produce the result- 
